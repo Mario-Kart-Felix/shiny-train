@@ -1,0 +1,10 @@
+This question already has answers here:
+Change group policy using windows CMD (5 answers)
+Closed 4 years ago.
+I'm attempting to throw together a script for work that allows BitLocker without a compatible TPM. The setting is Configuration \ Administrative Templates \ Windows Components \ Bit Locker Drive Encryption \ Operating System Drives and Require additional authentication at startup under gpedit.
+
+It just needs to be enabled. I used Process Monitor to watch which registry settings are changed when manually Enabling, which on mine is HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{5C0CD1B3-C6CC-448-AFA7-B69059CFF648}Machine\SOFTWARE\Policies\Microsoft\FVE EnableBDEWithNoTPM data is changed to 1.
+
+At first I figured I just somehow need to compensate for the Unique ID in curly brackets, but after looking on another Windows 8.1 Pro machine and "Group Policy Objects" wasn't even in the registry.
+
+So I'm out of ideas. Anyone know how this can be done using a script?
