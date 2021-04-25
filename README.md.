@@ -1,0 +1,155 @@
+# IcedCoffee
+iced interpreter is a drop-in replacement for the standard coffee interpreter; it will interpret almost all existing CoffeeScript programs.
+
+IcedCoffeeScript (ICS) adds two new keywords: await and defer. These additions simply and powerfully streamline asynchronous control flow, both on the server and on the browser. Say goodbye to callback pyramids; say adios to massive code rewrites when synchronization requirements change slightly. Say hello to clean, readable, maintainable control flow for network and asynchronous operations!
+
+The golden rule of CoffeeScript was: "It's just JavaScript". ICS is doing something deeper. It's selectively running code through a continuation-passing style conversion. Original-style CoffeeScript will compile as before, but code using the new ICS features will be less recognizable. Still, the compiled output is readable and pretty-printed, passes through JavaScript Lint without warnings.
+
+Latest Version: 1.8.0-a
+
+Installation
+
+The CoffeeScript compiler is itself written in CoffeeScript, using the Jison parser generator. The command-line version of iced is available as a Node.js utility. The core compiler however, does not depend on Node, and can be run in any JavaScript environment, or in the browser (see "Try It", above).
+
+To install, first make sure you have a working copy of the latest stable version of Node.js, and npm (the Node Package Manager). You can then install CoffeeScript with npm:
+
+npm install -g iced-coffee-script
+
+(Leave off the -g if you don't wish to install globally.)
+
+If you'd prefer to install the latest master version of CoffeeScript, you can clone the CoffeeScript source repository from GitHub, or download the source directly. To install the CoffeeScript compiler system-wide under /usr/local, open the directory and run:
+
+sudo bin/cake install
+
+ICS: Clean, Powerful Async Control Flow for CoffeeScript
+
+We're going to introduce ICS by a working browser-based example. We want to write a little program that uses the Twitter API to search for what to eat given today's weather. The strategy is as follows: search for four different foods, and see which has the most recent activity; search for four different weather patterns, and see which has the most recent activity; then search for both in one joint search. Do as much as possible in parallel.
+
+ICS BasicsThe first basic primitive is used to do a Twitter search for a single keyword. On the left is the ICS version, on the right is hand-rolled vanilla (hot) CoffeeScript.
+
+# Search for 'keyword' on twitter, then callback 'cb' # with the results found. search = (keyword, cb) -> host = "http://search.twitter.com/" url = "#{host}/search.json?q=#{keyword}&callback=?" await $.getJSON url, defer json cb json.results # Search for 'keyword' on twitter, then callback 'cb' # with the results found. search = (keyword, cb) -> host = "http://search.twitter.com/" url = "#{host}/search.json?q=#{keyword}&callback=?" $.getJSON url, (json) -> cb json.results 
+
+load
+
+
+There is one new language addition here, the await { ... } block, and also one new primitive function, defer. The two work in concert. A function must "wait" at the close of an await block until all deferrals made in that await block are fulfilled. The function defer returns a callback, and a callee in an await block can fulfill a deferral by simply calling the callback it was given.
+
+In the code above, there is only one deferral produced, and it's handed as an argument to $.getJSON. This is the standard jQuery getJSON call, which makes an Ajax request to the URL given, and then calls the passed callback with the JSON object it fetched. When the jQuery library does this, it will fulfill the deferral, and in so doing it will populate json with the data it fetched. Then, the function continues calling the final cb json.results.
+
+The right hand side shows the same code in standard CoffeeScript, and as we can see, there's not much difference...yet. Read on, dear reader!
+
+ICS and Standard Control FlowWhat's so great about await and defer is that they integrate seamlessly with existing CoffeeScript control structures, the tried-and-true favorites like for, if and else.
+
+The next step in our working example is to make multiple requests to the Twitter API, either in parallel or in serial. Recall, we want to lookup results for multiple food items (or weather conditions), so we can compare them to each other. Here is the code in ICS and standard CoffeeScript:
+
+# Search for 'keywords' in parallel, then callback # 'cb' with an array of the parallel results parallelSearch = (keywords, cb) -> out = [] await for k,i in keywords search k, defer out[i] cb out # Search for 'keywords' in parallel, then callback # 'cb' with an array of the parallel results parallelSearch = (keywords, cb) -> results = [] n_out = 0 cb_generator = (i) -> n_out++ (json) -> results[i] = json if n_out-- is 0 cb results for k,i in keywords search k, cb_generator i 
+
+load
+
+
+Look at the ICS code (on the left) first. Recall the rule: control stops in an await block until all deferrals created in that block have fulfilled. This code launches many searches in parallel, and only continues outside of the await block when all have completed. At that point cb out is called and parallelSearch is done.
+
+The right side is significantly hairier. We need to introduce a new function cb_generator that keeps track of how many searches we have outstanding. Only once all have come back should we continue and call the given callback. A big problem with this code is that it's significantly less readable. Control is weirdly inverted, so that it's no longer possible to follow the code top to bottom. It's also error-prone and difficult to modify.
+
+Let's say, for instance, that Twitter changes their ToS and we now have to issue these searches in serial, rather than in parallel. How does the code change?
+
+# Search for 'keywords' in serial, then callback # 'cb' with an array of the parallel results serialSearch = (keywords, cb) -> out = [] for k,i in keywords await search k, defer out[i] cb out # Search for 'keywords' in serial, then callback # 'cb' with an array of the parallel results serialSearch = (keywords, cb) -> result = [] i = 0 launch = () -> if i < keywords.length j = i++ search keywords[j], cb_generator j else cb results cb_generator = (i) -> (json) -> results[i] = json launch() launch() 
+
+load
+
+
+The ICS code barely changed! We just exchanged the await and for statements. The hand-rolled CoffeeScript needed a major rewrite. Moreover it's difficult to look at this code and recognize it as a sequential loop.
+
+Closing out the TutorialThere's really not much more to it. The ICS constructs also work with while, until if, else, unless, and switch constructs. The only exception is try, which doesn't catch exceptions when called from event handlers the main loop, for the same reason hand-rolled asynchronous code and try do not work well together.
+
+Finishing up our little example, here is code to rank the results we fetched from Twitter:
+
+# Do a parallel search on 'keywords', and call 'cb' with # the keywords sorted in decreasing popular order. # Determine popularity based on the time of the least # recent tweet (since we always get 15 from Twitter). rankPopularity = (keywords, cb) -> await parallelSearch keywords, defer results times = for r,i in results last = r[r.length - 1] [(new Date last.created_at).getTime(), i] times = times.sort (a,b) -> b[0] - a[0] cb (keywords[tuple[1]] for tuple in times) # Do a parallel search on 'keywords', and call 'cb' with # the keywords sorted in decreasing popular order. # Determine popularity based on the time of the least # recent tweet (since we always get 15 from Twitter). rankPopularity = (keywords, cb) -> parallelSearch keywords, (results) -> times = for r,i in results last = r[r.length - 1] [(new Date last.created_at).getTime(), i] times = times.sort (a,b) -> b[0] - a[0] cb (keywords[tuple[1]] for tuple in times) 
+
+load
+
+
+And a main block of code:
+
+# Search for the most popular food and the most # popular weather pattern in parallel. w_list = [ "sun", "rain", "snow", "sleet" ] f_list = [ "tacos", "burritos", "pizza", "shrooms"
+# typescript
+README.md
+typescript-action status
+
+Create a JavaScript Action using TypeScript
+Use this template to bootstrap the creation of a TypeScript action.🚀
+
+This template includes compilation support, tests, a validation workflow, publishing, and versioning guidance.
+
+If you are new, there's also a simpler introduction. See the Hello World JavaScript Action
+
+Create an action from this template
+Click the Use this Template and provide the new repo details for your action
+
+Code in Main
+Install the dependencies
+
+$ npm install
+Build the typescript and package it for distribution
+
+$ npm run build && npm run package
+Run the tests ✔️
+
+$ npm test
+
+ PASS  ./index.test.js
+  ✓ throws invalid number (3ms)
+  ✓ wait 500 ms (504ms)
+  ✓ test runs (95ms)
+
+...
+Change action.yml
+The action.yml contains defines the inputs and output for your action.
+
+Update the action.yml with your name, description, inputs and outputs for your action.
+
+See the documentation
+
+Change the Code
+Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
+
+import * as core from '@actions/core';
+...
+
+async function run() {
+  try { 
+      ...
+  } 
+  catch (error) {
+    core.setFailed(error.message);
+  }
+}
+
+run()
+See the toolkit documentation for the various packages.
+
+Publish to a distribution branch
+Actions are run from GitHub repos so we will checkin the packed dist folder.
+
+Then run ncc and push the results:
+
+$ npm run package
+$ git add dist
+$ git commit -a -m "prod dependencies"
+$ git push origin releases/v1
+Note: We recommend using the --license option for ncc, which will create a license file for all of the production node modules used in your project.
+
+Your action is now published! 🚀
+
+See the versioning documentation
+
+Validate
+You can now validate the action by referencing ./ in a workflow in your repo (see test.yml)
+
+uses: ./
+with:
+  milliseconds: 1000
+See the actions tab for runs of this action! 🚀
+
+Usage:
+After testing you can create a v1 tag to reference the stable and latest V1 action
