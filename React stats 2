@@ -1,0 +1,53 @@
+RunKit + 
+ Node.js
+This is a playground to test code. It runs a full Node.js environment with all npm packages installed. Try it out:
+
+
+all documents on RunKit are public
+require() any package directly from npm
+use arrow functions, classes, template strings, and most of ES6
+await any promise instead of using callbacks (example)
+create your own embedded node.js snippets
+This service is provided by RunKit and is not affiliated with npm, Inc or the package authors.
+
+search npm
+react-fps-stats v0.1.3
+FPS Stats in React
+OverviewBrowse Files
+
+×
+RunKit is a free, in-browser @JavaScript dev environment.
+React FPS Stats
+Graphics Performance Monitor for React
+Forked from https://github.com/sebslomski/react-stats, inspired by https://github.com/mrdoob/stats.js.
+
+Screenshots
+FPS
+
+Usage
+import React from "react";
+import { render } from "react-dom";
+import FPSStats from "react-fps-stats";
+
+const App = () => {
+  return (
+    <div>
+      <h2 style={{ marginTop: 60 }}>Minimal example using react-fps-stats</h2>
+      <FPSStats />
+    </div>
+  );
+};
+
+render(<App />, document.body);
+Try it on CodeSandbox.
+
+Optional Props
+By default, the meter is fixed positioned in the top left of the screen. You can pass the optional props top, right, bottom & left to overrride that positioning. Each prop maps to the css values and can use either string or number format. top and left have values by default, so pass 'auto' as their values if you want to use bottom or right values.
+
+Alternatives
+If you are only using this for development purpose and your users don't need to see it, you can consider using the Chrome Devtools FPS Meter.
+
+Contributing
+This is a tiny library with little activity, no process, just reach out ;)
+
+Publish process
