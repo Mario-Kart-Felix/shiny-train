@@ -1,0 +1,35 @@
+react-data-grid
+The core of react-data-grid
+
+Install
+npm install --save react-data-grid
+Usage
+import ReactDataGrid from 'react-data-grid';
+
+const columns = [{ key: 'id', name: 'ID' }, { key: 'title', name: 'Title' }];
+const rows = [{ id: 1, title: 'Title 1' }, ...];
+const rowGetter = rowNumber => rows[rowNumber];
+
+const Grid = () => {
+  return <ReactDataGrid
+    columns={columns}
+    rowGetter={rowGetter}
+    rowsCount={rows.length}
+    minHeight={500} />);
+}
+Exports
+Asside from the grid this package exports:
+
+name	source
+RowComparer	RowComparer
+RowsContainer	RowsContainer
+Row	Row
+Cell	Cell
+HeaderCell	HeaderCell
+editors	Editors
+formatters	Formatters
+shapes	shapes
+_constants	_constants
+_helpers	_helpers
+Metadata
+package on npmhttps://npmjs.com/package/react-data-grid
