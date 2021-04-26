@@ -1,0 +1,42 @@
+Crate julia
+[−]
+Safe and idiomatic Julia bindings for Rust. #JuliaLang #RustLang
+
+Uses nightly Rust for compilation, rustfmt with default settings for formatting, clippy for checking and resolving lints.
+
+julia-sys are the raw ffi bindings for Julia generated with bindgen.
+
+Example
+An example of using Rust to interface with Julia.
+
+fn main() {
+    use julia::api::{Julia, Value};
+
+    let mut jl = Julia::new().unwrap();
+    jl.eval_string("println(\"Hello, Julia!\")").unwrap();
+    // Hello, Julia!
+
+    let sqrt = jl.base().function("sqrt").unwrap();
+
+    let boxed_x = Value::from(1337.0);
+    let boxed_sqrt_x = sqrt.call1(&boxed_x).unwrap();
+
+    let sqrt_x = f64::try_from(boxed_sqrt_x).unwrap();
+    println!("{}", sqrt_x);
+    // 36.565010597564445
+}
+Modules
+api	Main entry point to the Julia api.
+error	This module provides types necessary for error checking and debugging.
+ext	
+string	
+sys	This module reexports julia_sys::* for conveniency
+version	This module provides primitives and constants for checking and comparing the version.
+Macros
+cstr	Create a CStr safely without the need to convert or allocate additional space.
+decl_jl	Constructs a Julia function declaration in the form of a stringified Julia expression.
+extern_jl	Turns Rust functions into Julia extern functions.
+jl_catch	This macro checks for exceptions that might have occurred in the sys::* functions. Should be used after calling any jl_* function that might throw an exception.
+jl_type	Create a new Julia type using a Rust-like syntax.
+jlvalues	Creates a number of JlValue wrapper types.
+jlvec	Creates a new Svec.
