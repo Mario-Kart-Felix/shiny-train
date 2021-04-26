@@ -1,0 +1,16 @@
+Hi @AlienDev
+
+if I use the example in the exec section of this page https://docs.chef.io/ctl_inspec.html 105
+in other works inspec exec testdir -t ssh://userID@internal-svr.gci.com OR inspec exec testdir/controls/test.rb -t ssh://userID@internal-svr.gci.com What I get is:
+
+$ inspec exec base -t ssh://someuser@somewhere.gci.com
+/opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/r-train-0.10.0/lib/train/transports/ssh.rb:84:in validate_options': You must configure at least one authentication method for SSH: Password or key. (Train::ClientError) from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/r-train-0.10.0/lib/train/transports/ssh.rb:67:inconnection’
+from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/lib/inspec/backend.rb:23:in create' from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/lib/inspec/runner.rb:46:inconfigure_transport’
+from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/lib/inspec/runner.rb:30:in initialize' from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/lib/utils/base_cli.rb:50:innew’
+from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/lib/utils/base_cli.rb:50:in run_tests' from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/bin/inspec:110:inexec’
+from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/thor-0.19.1/lib/thor/command.rb:27:in run' from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/thor-0.19.1/lib/thor/invocation.rb:126:ininvoke_command’
+from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/thor-0.19.1/lib/thor.rb:359:in dispatch' from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/thor-0.19.1/lib/thor/base.rb:440:instart’
+from /opt/chefdk/embedded/lib/ruby/gems/2.1.0/gems/inspec-0.14.2/bin/inspec:166:in <top (required)>' from /opt/chefdk/embedded/bin/inspec:22:inload’
+from /opt/chefdk/embedded/bin/inspec:22:in `’
+
+I’m getting derailed here. The page referenced above doesn’t mention any configuration of authentication methods or of Train. I looked at the Train page on github and didn’t find it helpful for my problem. Any help is most appreciated.
