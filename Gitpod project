@@ -1,0 +1,13 @@
+Gitpod co-founder here.
+
+Gitpod = server-side-dev-envs + dev-env-as-code + prebuilds + IDE + collaboration.
+
+From a Git Repository on GitHub, Gitlab or Bitbucket, Gitpod can spin up a server-side-dev-environment for you in seconds. That's a docker container that you can fully customize and that includes your source code, git-Terminal, VS Code extensions, your IDE (Theia IDE), etc. The dev environment is enough powerful to run your app and even side-services like databases.
+Step (1) is easily repeatable and reproducible because it's automated and version-controlled and shared across the team. We call this dev-environment-as-code. Think of infrastructure-as-code for your dev environment.
+After (1), you're immediately ready-to-code, because your workplace is already compiled and all dependencies of your code have been downloaded. Gitpod does that by running your build tools on git-push (like CI/CD would do) and "prebuilds" and store your workspace until you need it. This really shines when reviewing PRs in Gitpod.
+Collaboration becomes much easier once your dev environments live server-side and your IDE runs in the browser. Sending a snapshot of your dev environment to a colleague is as easy as sending a URL. The same goes for live shared coding in the same IDE and dev-environments.
+At the end of the day, you start treating your dev environments as something ephemeral: You start them, you code, your push your code, and you forget your dev environment. For your next thing, you'll use a fresh dev environment.
+
+The ease of mind that you get from not messing, massaging, and maintaining dev environments on your local machine is incredibly liberating.
+
+Gitpod can be used on gitpod.io, or self-hosted on Kubernetes, GCP, or AWS.
