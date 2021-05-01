@@ -1,0 +1,1325 @@
+
+@AlienDeb
+Questions Tags Users Badges Ask
+Up vote
+45
+Down vote
+
+Let's Play Mafia!
+game king-of-the-hill
+Mafia (also known as Werewolf) is a party game that plays roughly like this:
+
+The game begins on day 0. After every day n comes a night n. After every night n comes a day n+1. i.e. D0, N0, D1, N1, D2, N2...
+At the dawn of day 0, a host secretly chooses players to fill certain roles:  
+Some number of players become the mafia. Every night, every mafioso chooses a player. At the dawn of the next day, the player chosen by the most mafiosos is killed. They are permanently removed from the game and their role is publicly revealed. Mafia-aligned.  
+Some number of players become cops. Every night, each cop chooses a player. At the dawn of the next day, the cop becomes aware of that players alignment. Village-aligned.  
+Some number of players become doctors. Every night, each doctor chooses a player. If this player is the same player that the mafia chose to kill, the mafia's actions for that night are canceled. Village-aligned.  
+All players who aren't chosen for another role are villagers. Villagers have no abilities that aren't shared by the whole town. Village-aligned.
+Every day except day 0, the entire town (that is, all living players) votes for a player. At the end of the day, that player is removed from the game and their role is revealed. (On day 0, everyone just chills until nightfall.)
+If, at any point, there are no remaining mafiosos, the game ends with all village-aligned players victorious (including the dead).
+If, at any point, the village-aligned players do not outnumber the mafia-aligned players, the game ends with all mafia-aligned players victorious (including the dead).
+For this challenge, your goal is to write a bot to beat other bots at Mafia!
+
+How to make a working bot
+
+All you have to supply for me is a file called run. Inside the directory structure where this challenge will take place, your bot will live here:
+
+start
+controller/
+tmp/
+players/               # You are here!
+    some_bot/          # Let's pretend you're some_bot.
+        to_server
+        from_server
+        players
+        run            # This is what you give me
+    mafia-game-bot/
+    skynet/
+The run file, when executed, will make your bot do its thing. It's important to note that this file must not require any command line arguments or anything. It will be run exactly as ./run. If you need to be executed in a different way, you'll have to work around it by doing something like this:
+
+real_bot.py
+
+#!/bin/python2
+
+# code goes here
+run
+
+#!/bin/bash
+
+./real_bot.py --flags --or --whatever
+An important thing to note is that all input your bot receives will be found in the file from_server and the control program will look for your bot's output in to_server. I chose to do it this way so that any language that can do file I/O is able to participate. If your language makes it easier to work with stdin and stdout than file I/O, you may want to write a run file that looks like this:
+
+#!/bin/bash
+
+./real_bot.py < from_server > to_server
+This will make it so that stdin comes from the from_server file and stdout goes directly to to_server.
+
+Your bot will not stay running for the duration of the game. Instead, it will be run when it needs to make a decision. Likewise, it will not be informed when it's dead, it just won't be run anymore. Plan for this by saving anything you want to remember to a file and reading it later. You may create, write to or read from any file in your bot's folder, but you may not write or read anywhere outside of that folder, including network access or anything. If your bot knows anything that it wasn't told from inside the folder, or if it touches anything that isn't inside that folder, your bot is disqualified.
+
+How to make a functional bot
+
+Day
+
+At the beginning of the game, the file players will be filled with a newline-delimited list of all players in the game. It will not be updated as players leave the game.
+
+At the dawn of day 0, all players will find this message in their from_server file:
+
+Rise and shine! Today is day 0.
+No voting will occur today.
+Be warned: Tonight the mafia will strike.
+If you are the cop, the line You are the cop is appended to the end. The doctor sees You are the doctor. The mafia sees You are a member of the mafia.\nYour allies are: and a newline-delimited list of mafia members, excluding the player reading the message.
+
+At the dawn of all other days, this message will appear:
+
+Dawn of day `day_number`.
+Last night, `victim` was killed. They were `victim_role`.
+Investigations showed that `cop_target` is `target_alignment`-aligned.
+These players are still alive: `remaining_players`
+dayNumber is replaced with the number of the day. victim is replaced with the name of last night's victim, and victim_role is one of:
+
+a villager
+a mafioso
+the cop
+the doctor
+cop_target is the name of the player the cop investigated last night, and target_alignment is either village or mafia. Finally, remaining_players is a list of players that are still alive in this format: player1, player2, player3
+
+The second line is omitted if there was no kill last night, and the third line is shown only to the cop.
+
+For example,
+
+Dawn of day 42.
+Last night, Xyzzy was killed. They were a villager.
+Investigations showed that Randy is mafia-aligned.
+These players are still alive: Randy, CopBot, JohnDoe, Steve
+Once this message is out of the way, the day begins! Each bot can make 50 actions throughout the day, where an "action" is voting for a player or saying something out loud.
+
+To vote for a player, write vote player_name to your to_server file and terminate. To vote to not kill anyone, write vote no one. When you vote, all players (including you) will see your_bot votes to kill your_selection. Votes are ignored on day 0.
+
+A number of pre-defined messages can be sent to all players. The id of each possible message is listed here:
+
+ 0: No
+ 1: Yes
+ 2: I am the cop
+ 3: I am the doctor
+ 4: I am a normal villager
+ 5: I trust this player: 
+ 6: I think this player is suspicious: 
+ 7: I think this player is the cop: 
+ 8: I think this player is the doctor: 
+ 9: I think this player is a normal villager: 
+10: I think this player is mafia: 
+11: Do you think this player is mafia? 
+12: I tried to save this player: 
+13: I successfully saved this player: 
+14: I investigated this player and found that they were mafia-aligned: 
+15: I investigated this player and found that they were village-aligned: 
+16: Will you please use your power on this player tonight?
+All of these messages except the first five are referring to a specific player. To say one of those messages, write say message_id player_name. For one of the first five messages, just write say message_id. You may add an optional third argument to both of these, specifying the name of a player you're talking to (all players can still read it, but they'll know who the intended recipient is).
+
+When your bot says a message, all players read your_bot says "message", where message is the message associated with the id you wrote. If the message includes a subject, one space character and the subject are inserted directly after the end of the message. If it includes a recipient, their name, one colon and one space character are inserted immediately before the message.
+
+At the end of the day, all living players are run one last time to see the result of the vote. If a player was voted out, this is written:
+
+The town has killed player_name!
+They were a villager
+... or a mafioso, or the cop, or the doctor.
+
+If no player was voted out, this is written instead:
+
+The town opted to lynch no one today.
+When the controller sends these messages, it ignores any response from players. The day is over.
+
+Night
+
+At night, everyone but the villagers get to use their power.
+
+Mafia:
+
+You will read It is night. Vote for a victim.. When this happens, output the name of the player you'd like to kill.
+
+Cop:
+
+You will read It is night. Who would you like to investigate?. When this happens, output the name of the player you'd like to check.
+
+Doctor:
+
+You will read It is night. Who would you like to save?. When this happens, output the name of the player you'd like to protect.
+
+After this, the next day begins as normal.
+
+You may save yourself only once per game.
+
+General Information
+
+The game will not run without 6 or more players.
+One third of the players, rounded down, will be mafia. One player will be a doctor, and one player will be a cop. All other players are villagers.
+Ties in the village vote or the mafia's overnight vote are settled randomly.
+Bot names must be alphanumeric + dashes and underscores.
+It is forbidden to use knowledge of opponent's code directly. In theory, I should be able to put your bot up against bots you've never seen before and have it perform comparably.
+Regrettably, if I can't get your program running using exclusively free (as in beer) software, I'll have to disqualify it.
+I reserve the right to disqualify any submission if I believe it to be malicious. This includes, but is not limited to using excessive abouts of time, memory or space to run. I've intentionally left the limit soft, but remember: I'm running this on my home computer, not a supercomputer, and I don't want getting results to take a year. I don't expect to have to use this, since my standards are pretty low. This is basically "if I think you're being a dick on purpose", and if you can convince me otherwise I'll reverse my decision.
+Scoring
+
+Each round, 100 games will be run (this may increase as more bots join to keep the sample size large enough, but in theory that won't affect anything). I will record how many times each bot wins as a villager compared to how many times it plays as a villager, and the same for mafia. A bot's villager_ratio is number of games won as villager / number of games played as villager, and mafia_ratio is the same but s/villager/mafia/g. A bot's score is (villager_ratio - mean villager_ratio) + (mafia_ratio - mean mafia_ratio).
+
+Example bot
+
+Randy the Robot is not a good mafia player. Randy ignores pretty much everything, randomly choosing what to say, who to vote for, and who to target with night powers.
+
+run.sh:
+
+#!/bin/bash
+
+./randy.py < from_server > to_server
+randy.py:
+
+#!/usr/bin/env python
+
+import random
+
+with open('players') as f:
+    p = f.read().split() + ['no one']
+
+
+day = True
+try:
+    line = raw_input()
+    if line.endswith(('?', 'victim.')):
+        day = False
+    if not day:
+        print random.choice(p)
+    else:
+        if random.random() > 0.5:
+            if random.random() > 0.5:
+                print 'vote {}'.format(random.choice(p))
+            else:
+                id = random.randint(0, 17)
+                print 'say {}{}'.format(id, (' ' + random.choice(p)) if id > 4 else '')
+except: pass
+Controller
+@undergroundmonorail wrote a control program for this challenge, available here.
+
+You have one month to code and turn in answers, I will give the winning bot (highest win rate tie breaker is votes) at least a 50 reputation bounty (depending on how much rep I can earn in a month)
+
+Here is a wrapper script, made by @Blacksilver, to use with compiled languages:
+
+#!/bin/bash
+
+run="./a.out"
+compile="gcc bot.c"
+
+if [ -e $run ]; then
+        $run
+else
+        $compile
+        $run
+fi
+Put this in run.
+
+This post was written by @undergroundmonorail (I made a few edits).
+
+He gave it up here to anyone who wanted to finish and post it.
+
+Share Improve this question Follow
+asked
+Dec 20 '17 at 17:00
+
+Christopher
+3,524●1414 silver badges●5151 bronze badges edited
+Dec 30 '17 at 22:50
+
+pppery
+5,623●2121 silver badges●3737 bronze badges
+Comments are not for extended discussion; this conversation has been moved to chat. – Martin Ender Feb 20 '18 at 14:51
+Add a comment
+
+6 Answers
+order by 
+votes
+Up vote
+3
+Down vote
+Accepted
++50
+Zulu
+run
+
+#!/usr/bin/env php
+<?php
+error_reporting(E_ERROR|E_WARNING|E_PARSE);
+
+$self = basename(__DIR__);
+
+$msgids = array(
+    "No",
+    "Yes",
+    "I am the cop",
+    "I am the doctor",
+    "I am a normal villager",
+    "I trust this player:",
+    "I think this player is suspicious:",
+    "I think this player is the cop:",
+    "I think this player is the doctor:",
+    "I think this player is a normal villager:",
+    "I think this player is mafia:",
+    "Do you think this player is mafia?",
+    "I tried to save this player:",
+    "I successfully saved this player:",
+    "I investigated this player and found that they were mafia-aligned:",
+    "I investigated this player and found that they were village-aligned:",
+    "Will you please use your power on this player tonight?"
+);
+$msgids = array_flip($msgids);
+
+if(!file_exists('./from_server')){
+    die;
+}
+$in = file('from_server');
+if(count($in) && strpos($in[0],'day 0.') !== false){
+    $game = array(
+        'day'               =>0,
+        'players'           =>array(),
+        'alive'             =>array(),
+        'dead'              =>array(),
+        'mafia'             =>array(),
+        'village'           =>array(),
+        'cop'               =>'',
+        'doctor'            =>'',
+        'votes'             =>array(),
+        'messages'          =>array(),
+        'currentvotes'      =>array(),
+        'currentmessages'   =>array()
+    );
+    $playersfile = file('players');
+    foreach($playersfile as $name){
+        $game['players'][trim($name)] = 1;
+        $game['alive'][trim($name)] = 1;
+        $game['votes'][trim($name)] = array();
+        $game['messages'] = array();
+    }
+    $allies = false;
+    foreach($in as $line){
+        if($allies){
+            if(array_key_exists(trim($line),$game['players'])){
+                $game['mafia'][trim($line)] = 1;
+            }
+        }
+        else if(strpos($line,"You are the cop") !== false){
+            $game['cop'] = $self;
+            $game['village'][$self] = 1;
+        }
+        else if(strpos($line,"You are the doctor") !== false){
+            $game['doctor'] = $self;
+            $game['village'][$self] = 1;
+        }
+        else if(strpos($line,"member of the mafia") !== false){
+            $game['mafia'][$self] = 1;
+        }
+        else if(strpos($line,"allies are:") !== false && $game['mafia'][$self]){
+            $allies = true;
+        }
+    }
+    if(!$game['mafia'][$self]){
+        $game['village'][$self] = 1;
+    }
+    else{
+        foreach($game['players'] as $name=>$g){
+            if(!$game['mafia'][$name]){
+                $game['village'][$name] = 1;
+            }
+        }
+    }
+    $out = json_encode($game);
+    write('myinfo',$out);
+}
+else{
+    $myinfo = file_get_contents('myinfo');
+    $game = json_decode($myinfo,true);
+    if(count($in) && strpos($in[0],"town has killed") !== false){
+        $e = explode(" ",trim($in[0]));
+        $dead = trim($e[4],'!');
+        unset($game['alive'][$dead]);
+        $game['dead'][$dead] = 1;
+        $e = explode(" ",trim($in[1]));
+        $allegiance = trim($e[3],".");
+        $game[$allegiance][$dead] = 1;
+    }
+    else if(count($in) && strpos($in[0],"town opted to") !== false){
+        //
+    }
+    else if(count($in) && strpos($in[0],"night") !== false){
+        if(strpos($in[0],"victim") !== false){
+            $voted = false;
+            if($game['day'] > 0){
+                $possible = array();
+                foreach($game['alive'] as $name=>$g){
+                    if(!$game['mafia'][$name]){
+                        foreach($game['votes'][$name] as $for){
+                            if($voted && $game['mafia'][$for]){
+                                $possible[] = $name;
+                            }
+                        }
+                    }
+                }
+                if(count($possible)){
+                    shuffle($possible);
+                    write('to_server',$possible[0]);
+                    $voted = 1;
+                }               
+            }
+            if(!$voted){
+                while($rand = array_rand($game['alive'])){
+                    if(!$game['mafia'][$rand]){
+                        write('to_server',$rand);
+                        $voted = 1;
+                        break;
+                    }
+                }
+            }
+        }
+        else if(strpos($in[0],"investigate") !== false){
+            $possible = array();
+            foreach($game['alive'] as $name=>$g){
+                if(!$game['village'][$name] && !$game['mafia'][$name] && $game['doctor'] != $name){
+                    $possible[] = $name;
+                }
+            }
+            if(count($possible)){
+                shuffle($possible);
+                write('to_server',$possible[0]);
+            }
+        }
+        else if(strpos($in[0],"save") !== false){
+            if($game['day'] == 0){
+                write('to_server',$self);
+            }
+            else{
+                if($game['cop'] != '' && $game['alive'][$game['cop']]){
+                    write('to_server',$game['cop']);
+                }
+                else{
+                    $voted = false;
+                    foreach($game['alive'] as $name=>$g){
+                        if($game['village'][$name] && $name != $self){
+                            write('to_server',$name);
+                            $voted = true;
+                            break;
+                        }
+                    }
+                    if(!$voted){
+                        while($rand = array_rand($game['alive'])){
+                            if($rand != $self){
+                                write('to_server',$rand);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else if(count($in) && strpos($in[0],"Dawn of day") !== false){
+        $e = explode(" ",trim($in[0]));
+        $game['day'] = trim($e[3],".");
+        foreach($in as $line){
+            if(strpos($line,"was killed") !== false){
+                $e = explode(" ",trim($line));
+                $dead = $e[2];
+                if(strpos($line,"the cop") !== false){
+                    $game['cop'] = $dead;
+                    $game['village'][$dead] = 1;
+                }
+                else if(strpos($line,"the doctor") !== false){
+                    $game['doctor'] = $dead;
+                    $game['village'][$dead] = 1;
+                }
+                else if(strpos($line,"a villager") !== false){
+                    $game['village'][$dead] = 1;
+                }
+                else if(strpos($line,"a mafioso") !== false){
+                    $game['mafia'][$dead] = 1;
+                }
+                unset($game['alive'][$dead]);
+                $game['dead'][$dead] = 1;
+            }
+            else if(strpos($line,"Investigations showed") !== false){
+                $e = explode(" ",trim($line));
+                $name = $e[3];
+                $align = trim($e[5]);
+                $e = explode("-",$align);
+                $game[$e[0]][$name] = 1;
+            }
+        }
+        $game['currentvotes'] = array();
+        $game['currentmessages'] = array();
+        foreach($game['alive'] as $name=>$g){
+            $game['currentvotes'][$name] = '';
+        }
+    }
+    else{
+        foreach($in as $line){
+            if(strpos($line," has voted to lynch no one") !== false){
+                $e = explode(" ",trim($line));
+                $game['votes'][$e[0]][] = false;
+                $game['currentvotes'][$e[0]] = false;
+            }
+            else if(strpos($line," has voted to ") !== false){
+                $e = explode(" ",trim($line));
+                $game['votes'][$e[0]][] = trim($e[5]," .");
+                $game['currentvotes'][$e[0]] = trim($e[5]," .");
+            }
+            else if(strpos($line," says ") !== false){
+                foreach($msgids as $msg=>$id){
+                    $chk = preg_match('/([^\s]+) says "(([^\s]+)[:,] )?'.preg_quote($msg).'( ([^\s]+))?"/',$line,$matches);
+                    if($chk){
+                        //                                  said by     said to     said  said about
+                        $game['messages'][]         = array($matches[1],$matches[3],$msg, $matches[5]);
+                        $game['currentmessages'][]  = array($matches[1],$matches[3],$msg, $matches[5]);
+                    }
+                }
+            }
+        }
+        $written = false;
+        $convo = array();
+        foreach($game['currentmessages'] as $msg){
+            if($msg[1] == $self){
+                $convo[$msg[0]] = $msg;
+            }
+            else if($msg[0] == $self && $msg[1] != ''){
+                unset($convo[$msg[1]]);
+            }
+        }
+        if(count($convo)){
+            foreach($convo as $c){
+                if($msgids[$c[2]] == 11){
+                    if($game['mafia'][$msg[3]]){
+                        write('to_server',"say 1 ".$msg[0]);
+                        $written = true;
+                        break;
+                    }
+                    else if($game['village'][$msg[3]]){
+                        write('to_server',"say 0 ".$msg[0]);
+                        $written = true;
+                        break;
+                    }
+                    else{
+                        write('to_server',"say 11 ".$msg[0]);
+                        $written = true;
+                        break;
+                    }
+                }
+                else if($msgids[$c[2]] == 16){
+                    write('to_server',"say 0 ".$msg[0]);
+                    $written = true;
+                }
+                else{
+                    write('to_server',"say 4 ".$msg[0]);
+                    $written = true;
+                }
+            }
+        }
+        if(!$written){
+            $currentvote = false;
+            if(array_key_exists($self,$game['currentvotes'])){
+                $currentvote = $game['currentvotes'][$self];
+            }
+            if($game['mafia'][$self]){
+                $votes = @array_count_values($game['currentvotes']);
+                if($votes && count($votes)){
+                    arsort($votes);
+                    foreach($votes as $name=>$number){
+                        if($game['village'][$name]){
+                            if($currentvote != $name){
+                                write('to_server','vote '.$name);
+                                $written = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else{
+                if(count($game['mafia'])){
+                    foreach($game['mafia'] as $name=>$g){
+                        if($game['alive'][$name]){
+                            $written = true;
+                            if($currentvote != $name){
+                                write('to_server','vote '.$name);
+                            }
+                            break;
+                        }
+                    }
+                    if(!$written){
+                        foreach($game['mafia'] as $name=>$g){
+                            $non = $game['alive'];
+                            unset($non[$self]);
+                            if(array_key_exists($name,$game['votes'])){
+                                foreach($game['votes'][$name] as $vote){
+                                    if(array_key_exists($vote,$non)){
+                                        unset($non[$vote]);
+                                    }
+                                }
+                            }
+                            if(count($non)){
+                                $rand = array_rand($non);
+                                write('to_server','vote '.$rand);
+                                $written = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if(!$written && $game['cop']){
+                    $possible = array();
+                    foreach($game['votes'][$game['cop']] as $name){
+                        if($game['alive'][$name] && $name != $self){
+                            $possible[] = $name;
+                        }
+                    }
+                    if(count($possible)){
+                        shuffle($possible);
+                        write('to_server','vote '.$possible[0]);
+                        $written = true;
+                    }
+                }
+                if(!$written && count($game['dead'])){
+                    foreach($game['dead'] as $name=>$g){
+                        if($game['village'][$name]){
+                            $v = array();
+                            foreach($game['votes'] as $voted=>$arr){
+                                if($game['alive'][$voted] && in_array($name,$arr)){
+                                    $v[$voted] = 1;
+                                }
+                            }
+                            unset($v[$self]);
+                            if(count($v)){
+                                $rand = array_rand($v);
+                                write('to_server','vote '.$rand);
+                                $written = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if(!$written){
+                    $votes = @array_count_values($game['currentvotes']);
+                    if($votes && count($votes) && array_key_exists($self,$votes)){
+                        arsort($votes);
+                        foreach($votes as $name=>$number){
+                            if(!$game['village'][$name]){
+                                if($name != $self){
+                                    write('to_server','vote '.$name);
+                                    $written = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    $myinfo = json_encode($game);
+    write('myinfo',$myinfo);
+}
+
+function write($filename,$data){
+    $fh = fopen($filename,"wb+");
+    if($fh){
+        $bytes = fwrite($fh,$data);
+        fclose($fh);
+    }
+}
+Not everything I hoped it would be. I may end up tweaking it occasionally.
+
+How it works v1.0
+Keeps track of day number, who is alive, who is dead, who is mafia, who is village-aligned, roles, current day votes/messages, and overall votes/messages.
+
+Night
+
+a. Mafia - Vote for any villager who has voted against mafia (randomly) if possible, otherwise a random villager.
+
+b. Cop - Investigate anyone who is of unknown alignment.
+
+c. Doctor - Save self first turn, then save cop if known (I don't think it can ever know this as of now), save villager if known (probably doesn't know this either), otherwise save random person.
+
+Day
+
+a. If anyone has spoken a message directly to self, respond to them (limited responses possible).
+
+b. Mafia - Vote for the villager who has the most votes.
+
+c. Villager with any alive Mafia-aligned known - vote for mafioso.
+
+d. Villager with only dead Mafia-aligned known - vote for a random bot who has never voted for the mafioso.
+
+e. Villager with Cop known - vote for random bot the cop has voted for.
+
+f. Villager with dead Village-aligned known - vote for a random bot who voted for the dead.
+
+g. Villager with votes against self - vote for the highest currently voted non-village-aligned bot.
+
+Share Improve this answer Follow
+answered
+Jan 24 '18 at 9:41
+
+Jo.
+984●33 silver badges●99 bronze badges edited
+Jan 26 '18 at 3:57
+
+1
+Wait, what does this do? – SIGSTACKFAULT Jan 24 '18 at 15:03
+1
+Why, it plays mafia, of course! :) – Jo. Jan 25 '18 at 5:20
+I mean the strategy. – SIGSTACKFAULT Jan 25 '18 at 19:38
+Add a comment
+Up vote
+6
+Down vote
+The example code didn't worked for me, I use Python 3, so I changed the main.py file to make it work.
+
+So here is my fixed version for Python 3, I never programmed in Python before so maybe it is a horrible code but it is works :)
+
+run.sh:
+
+#!/bin/bash
+
+./randy.py < from_server > to_server
+randy.py:
+
+#!/usr/bin/env python3
+
+import random
+
+with open('players') as f:
+    p = f.read().split() + ['no one']
+
+with open('from_server') as f:
+    fs = f.read().split()
+
+msg = ""
+day = True
+try:
+    line = fs[0]
+    if line.endswith(('?', 'victim.')):
+        day = False
+    if not day:
+        msg = (random.choice(p))
+    else:
+        if random.random() > 0.5:
+            if random.random() > 0.5:
+                msg = ('vote {}'.format(random.choice(p)))
+            else:
+                id = random.randint(0, 17)
+                msg = ('say {}{}'.format(id, (' ' + random.choice(p)) if id > 4 else ''))
+
+    with open('to_server', 'w') as f:
+        f.write(msg)
+    print(msg)
+except: pass
+A few thing I learned while I made this work (and it was not clear for me in the description)
+
+print does not do anything with the game it is like a console.log in js
+input() blocks the program running it can be good for step by step debugging
+from_server and to_server is cleared every round.
+It is impossible to stop the script with Ctrl+C combination, which is annoying.
+Share Improve this answer Follow
+answered
+Dec 21 '17 at 20:17
+
+Peter
+213●11 silver badge●66 bronze badges edited
+Dec 22 '17 at 1:58
+
+user202729
+16.3k●22 gold badges●3131 silver badges●6565 bronze badges
+Welcome to PPCG! Great first post! Hope you stick around! I've edited your post to have functioning syntax highlighting, and for the sake of consistency added a run.sh. – Rɪᴋᴇʀ Dec 21 '17 at 21:06 
+1
+Thank you! I am not sure < from_server > to_server is necessary because I hard coded filenames in the code. the game engine just call ./run without pipes. so input() and print() did not works with the game. mayn.py line 57: os.system('./run') – Peter Dec 21 '17 at 21:29 
+2
+How'd you get the controller to run? I can't figure it out. Can you provide a sample invocation? – Rɪᴋᴇʀ Dec 22 '17 at 0:55 
+Note: The original randy.py was written in in Python 2, which caused the problems. – SIGSTACKFAULT Dec 22 '17 at 2:06
+for controller you need to ./start from the original folder or you need a python 3 version of the main.py – Peter Dec 22 '17 at 16:16 
+Add a comment
+Up vote
+5
+Down vote
+The Logician
+#!/usr/bin/env python3
+import sys
+import os
+import re
+import random
+from types import SimpleNamespace
+def chooseSet(set):
+    return random.choice(list(set))
+sys.stdin = open("from_server")
+sys.stdout = open("to_server","w")
+def saveData(data):
+    with open("gameData.txt", "w") as datafile:
+        datafile.write(repr(data.__dict__))
+MY_NAME = os.path.basename(os.getcwd())
+opener = input()
+DATABASES = ("targets","herd","mafiosos","guilty","innocent","unlikely", "requests",
+            "selfvotes","players","used_roles")
+ALLOW_SELF = ("players", "mafiosos")
+LIESPERROLE = {"cop": ("I am the cop",
+                "I investigated this player and found that they were mafia-aligned",
+                "I investigated this player and found that they were village-aligned"),
+              "doctor": ("I am the doctor",
+                   "I tried to save this player",
+                   "I successfully saved this player"
+                   )
+        }
+#1: At the beginning of the game, parse beginning of day 0
+if opener == "Rise and shine! Today is day 0.":
+    #Next two lines are completely predetermined and hold no data
+    assert input() == "No voting will occur today."
+    assert input() == "Be warned: Tonight the mafia will strike."
+    data = SimpleNamespace(cop=False, doctor=False, queued=[],askers={})
+    for datum in DATABASES:
+        setattr(data, datum, set())
+    try:
+        nextline = input()
+        if nextline == "You are a member of the mafia.":
+            data.mafiosos.add(MY_NAME)
+            assert input() == "Your allies are:"
+            while True:
+                data.mafiosos.add(input())
+        elif nextline == "You are the doctor":
+            data.doctor = True
+            data.used_roles.add("doctor")
+        elif nextline == "You are the cop":
+            data.cop = True
+            data.used_roles.add("cop")
+    except EOFError:
+        #villager, or ran out of mafiosos to add
+        pass
+    with open("players") as playersfile:
+        data.players = set(playersfile.read().strip().splitlines())
+    saveData(data)
+    exit()
+with open("gameData.txt") as datafile:
+    data = SimpleNamespace(**eval(datafile.read().strip()))
+#2: Beginning of day nonzero
+if opener.startswith("Dawn of day"):
+    data.requests.clear()
+    data.selfvotes.clear()
+    data.askers.clear()
+    data.voted = False
+    try:
+        while True:
+            nextline = input()
+            victim = re.match("Last night, (.*) was killed. They were (?:a|the) (.*).", nextline)
+            if victim:
+                victim, role = victim.groups()
+                #remove dead people from lists
+                for datum in DATABASES:
+                    getattr(data, datum).discard(victim)
+                if role == "cop" or role == "doctor":
+                    data.used_roles.add(role)
+                continue
+            investigated = re.match("Investigations showed that (.*) is (.*)-aligned.", nextline)
+            if investigated:
+                assert data.cop
+                who = investigated.group(1)
+                if investigated.group(2) == "mafia":
+                    data.guilty.add(who)
+                    data.unlikely.discard(who)
+                else:
+                    data.targets.discard(who)
+                    data.herd.discard(who)
+                    data.innocent.add(who)
+                    data.unlikely.add(who)
+                continue
+    except EOFError:
+        pass
+#3: We're being told some messages / news
+elif " says " in opener or " voted " in opener:
+    message = opener
+    acted = question = False
+    try:
+        while True:
+            if " voted " in message:
+                message = "<vote against>"
+                speaker, subject = re.match("(.*) has voted to lynch (.*)", message).groups()
+                target = None
+            else:
+                speaker, target, message, subject = \
+                    re.match("(.*) says \"(?:(.*), )?([^:\?]+)(?:[:\?]\s*(.*))?\"",
+                             message).groups()
+            if speaker == MY_NAME:
+                continue
+            BAD_MESSAGES = ("<vote against>", "I think this player is mafia",
+                            "I investigated this player and found that they were mafia-aligned",
+                            "I think this player is suspicious")
+            GOOD_MESSAGES = ("I think this player is the cop",
+                             "I think this player is the doctor",
+                             "I think this player is a normal villager",
+                             "I trust this player",
+                             "I investigated this player and found that they were village-aligned")
+            OUTS = "I am the cop", "I am the doctor"
+            LIES = ()
+            for role in data.used_roles:
+                LIES += LIESPERROLE[role]
+            if message == "Yes" or message == "No":
+                if question and not target:
+                    target = chooseSet(data.askers)
+                if target in data.askers:
+                    BAD_MESSAGES += "Yes",
+                    GOOD_MESSAGES += "No",
+                    subject = data.askers[target]
+            if message in LIES and speaker not in data.mafiosos and speaker not in data.innocent:
+                # What you just said is false, and I know it!
+                data.unlikely.discard(speaker)
+                data.targets.add(speaker)
+                if subject and subject not in (data.unlikely.union(data.mafiosos)):
+                    data.targets.add(subject)
+            elif message in BAD_MESSAGES:
+                if speaker in data.guilty:
+                    #mafiosos rarely turn on eachother
+                    data.unlikely.add(subject)
+                    data.targets.discard(subject)
+                elif speaker in data.unlikely:
+                    #believe the herd, especially people who we trust
+                    data.herd.add(subject)
+                elif subject in data.unlikely:
+                    #how dare you speak against players likely to be village-aligned!
+                    data.targets.add(speaker)
+                elif subject == MY_NAME or subject in data.mafiosos:
+                    #DON'T ATTACK ME (or my fellow mafiosos)
+                    data.targets.add(speaker)
+                else:
+                    #believe the herd
+                    data.herd.add(subject)
+                if not acted and message == "<vote against>":
+                    if subject == MY_NAME:
+                        data.selfvotes.add(speaker)
+                        if len(data.selfvotes) >= (len(data.players)-len(data.mafiosos))/3:
+                            if data.cop:
+                                print("say 2")
+                                #give a data point to prove it
+                                if random.random() > .5 and data.guilty:
+                                    data.queued.append("say 14 %s" % chooseSet(data.guilty))
+                                elif data.innocent:
+                                    data.queued.append("say 15 %s" % chooseSet(data.innocent))
+                            else:
+                                print("say 4") #Don't out myself if I'm the doctor
+                                # and just lie if I'm a mafioso
+                            acted = True
+                    else:
+                        data.selfvotes.discard(speaker)
+            elif message in OUTS and data.mafiosos and speaker not in data.unlikely:
+                data.targets.add(speaker) #Kill the fools who boast!
+            elif message in GOOD_MESSAGES:
+                chance = random.random() < .1 - (speaker in data.targets) / 20
+                if speaker in data.guilty: #Mafia liars
+                    if subject not in data.unlikely:
+                        data.targets.add(subject)
+                elif subject == MY_NAME and chance:
+                    if speaker in data.targets:data.targets.remove(speaker)
+                    data.unlikely.add(speaker)
+                elif speaker in data.unlikely or chance:
+                    data.unlikely.add(subject)
+            elif message == "Do you think this player is mafia":
+                if subject == MY_NAME:
+                    data.targets.append(speaker)
+                if target == MY_NAME or not target:
+                    if speaker in data.guilty:
+                        data.queued.append("say 14 %s %s" % (subject, speaker))
+                    elif speaker in data.innocent:
+                        data.queued.append("say 15 %s %s" % (subject, speaker))
+                    elif subject in data.targets or subject in data.herd:
+                        data.queued.append("say 1 %s" % (speaker))
+                    elif subject in data.unlikely:
+                        data.queued.append("say 0 %s" % (speaker))
+                    if data.cop:
+                        data.requests.add(subject)
+                data.askers[speaker] = subject
+                question = True
+            elif target == MY_NAME and message == "Will you please use your power on this player tonight":
+                data.requests.add(subject)
+            message = input()
+    except EOFError:
+        pass
+    for datum in DATABASES:
+        if datum in ALLOW_SELF: continue
+        getattr(data, datum).discard(MY_NAME)
+    chance = random.random()
+    if data.queued:
+        print(data.queued.pop())
+    elif chance < .1:
+        target = chooseSet(data.targets or data.players)
+        if target != MY_NAME:
+            print("say 10 %s" % target)
+            data.askers[MY_NAME] = target
+    elif chance < .3 and data.targets:
+        print("say 6 %s" % chooseSet(data.guilty or data.targets))
+    elif chance < .5 and data.unlikely:
+        print("say 5 %s" % chooseSet(data.innocent or data.unlikely))
+    elif chance < .6 and not data.voted:
+        target = chooseSet(data.guilty or data.targets or data.herd or data.players)
+        if target not in data.mafiosos and target != MY_NAME:
+            print("vote %s" % target)
+        data.voted = True
+    elif chance < .8:
+        #do nothing
+        pass
+    elif chance < .9:
+        #Confuse everybody
+        print("say 1")
+        data.queued.append("say 0")
+######################
+#4: End of day
+elif "has killed" in opener:
+    victim = re.match("The town has killed (.*)!", opener)
+    if not victim:
+        exit()
+    victim = victim.group(1)
+    #remove dead people from lists
+    for datum in DATABASES:
+        getattr(data, datum).discard(victim)
+    role = input()
+    role = re.match("They were (?:a|the) (.*)", role).group(1)
+    if role == "cop" or role == "doctor":
+        data.used_roles.add(role)
+    #Misc: purge people from lists if too large
+    for list in data.unlikely, data.targets, data.herd:
+        while len(list) > len(data.players)/3:
+            list.pop()
+    for player in data.innocent:
+        data.unlikely.add(player)
+elif opener == "The town opted to lynch no one today.":
+    #Do nothing
+    pass
+#5: Night
+elif "night" in opener:
+    if not data.mafiosos and data.requests and random.random() > .5:
+        print(chooseSet(data.requests))
+    if data.doctor:
+        print(chooseSet(data.unlikely or data.players))
+    else:
+        while True:
+            try:
+              target = (data.targets or data.herd).pop()
+            except KeyError:
+              target = chooseSet(data.players)
+            if target in data.mafiosos or target == MY_NAME:
+                continue
+            print(target)
+            break
+else:
+    raise ValueError("Unknown message")
+saveData(data)
+Fancy, long bunch of python code that I'm not going to explain (although it isn't golfed), other than that it keeps lists of "friends" and "enemies" that are originally populated based on chance and/or cop investigation. Warning: do not lie in the logician's presence.
+
+Share Improve this answer Follow
+answered
+Dec 25 '17 at 22:54
+
+pppery
+5,623●2121 silver badges●3737 bronze badges edited
+Jun 17 '20 at 9:04
+
+Community♦
+1
+is your run.sh the standard (doing some testing) – Stan Strum Dec 26 '17 at 2:35
+No, my run.sh could just purely be "run.py" without the usual input and output piping, but the standard would work. – pppery Dec 26 '17 at 2:39 
+1
+This looks very similar to what I'd have written up, had I the time and inclination. – Draco18s no longer trusts SE Dec 29 '17 at 20:43
+For some reason I think the logician won’t do so well around the other bots... none of the other bots report cop investigation – JSCoder says Reinstate Monica Jan 13 '18 at 14:07
+1
+... and I realize, months later, that my answer incorrectly assumes there can only be one cop/doctor. – pppery Apr 17 '19 at 18:06
+Add a comment
+Up vote
+4
+Down vote
+Survivalist (v 1.0)
+Synopsis
+
+Survivalist simply brutally survives the game by berating anyone that dares to accuse him, regardless of whether he is mafia or not.
+
+Logic
+
+If you survive to the end of the game, you win no matter what. Therefore, you survive at all costs.
+
+Backstory
+
+The troops marched through the dark, damp forest.
+
+"Lieutenant, where are we marching?" The young recruit apparently hadn't hardened himself to atrocities, the commander thought. Oh well. He answered with a brusque "to destroy the enemy".
+
+At the village, the enemy commander was drinking and laughing along with the other officers at the club when a scout rushed in with the news. "There's a column, several hundred yards long, marching through the Yulin forest for us! Rally the troops!"
+
+The enemy commander, obviously inebriated, said unexpectedly, "I've had no reports from other scouts." The scout (later Survivalist) thought, then I'll have to rally the troops myself. After telling the story to the fellow scouts, they came back together, all saying that they had seen enemy troops. The commander still did not believe, saying, "I am ordering you to discontinue scouting. There are no enemy troops".
+
+The scouts decided to get their weapons to save the community. They managed to get to their positions just as the enemy arrived in the village in force. "CHARGE!" yelled the commander of the ambush. "BURN THE HOUSES! BURN THE HOUSES! KILL EVERYONE, INCLUDING THE WOMEN AND THE CHILDREN!"
+
+The scouts saved their entire army. They expected promotion, awards, and medals. Instead, they got a rigged court-martial for mutiny, conviction, 10 years in prison, dishonorable discharge from the military and exile.
+
+There is an old elder at the city council of Salem, Massachusetts. Legend has it that he founded the town. When you meet him in his isolated cottage out in the forest, don't let the twinkle in his eye make you think he's peaceful. If you accuse him, he will ruin you in front of the town.
+
+The Veteran laughed in the darkness. Afraid of the dark, no way. Afraid of monsters under the bed? The man with his hand on trigger of a gun laughed nervously. He wasn't scared of anything, he had told himself. Sure, he was a past war time hero, but he was so used to ambushes and life threatening situations that it made the man simply neurotic. His trigger finger twitched at simple shadows; his heartbeat quickened with every little sound. Yes, he was this scared of death. How could he not, seeing so many people die in horrible ways? All he knew from being kidnapped and miraculously escaping his enemies was that there was no mercy.
+
+Veteran
+
+Code (I'm a rookie in python, not sure if the code is good)
+
+#!/bin/python2
+
+import random
+
+with open('players') as f:
+    p = f.read().split() + ['no one']
+
+
+day = True
+target = "survivalist"
+role = "villager"
+try:
+    line = raw_input()
+    if "You are the cop" in line:
+        role = "cop"
+    else if "You are the doctor" in line:
+        role = "doctor"
+    else if "You are a member of the mafia" in line:
+        role = "mafia"
+
+    if line.endswith(('?', 'victim.')):
+        day = False
+    if not day:
+        if target == "survivalist":
+            print random.choice(p)
+        else if role == mafia || role == sheriff:
+            print target
+        else if role == doctor:
+            print random.choice(p)
+    else:
+        if "survivalist" in line && ("I think this player is suspicious:" in line || 
+        "I think this player is mafia:" in line ||
+        "I investigated this player and found that they were mafia-aligned:")):
+            print 'say 0'
+            if role == "villager" || role == "mafia":
+                print 'say 4'
+            else if role == "cop":
+                print 'say 2'
+            else if role == "doctor"
+                print 'say 3'
+            target = line.split(" ")[0]
+            print 'vote ' + target
+
+        else if target != "survivalist":
+            print 'say 6 ' + target
+            print 'vote ' + target
+    else:
+        pass
+
+except: pass
+Share Improve this answer Follow
+answered
+Jan 11 '18 at 18:01
+
+JSCoder says Reinstate Monica
+151●66 bronze badges edited
+Jan 17 '18 at 21:07
+
+Did you mean or instead of ||? Did you test it? Also, you should probably point out that it's Python 2. – Solomon Ucko Mar 29 '18 at 15:22
+Add a comment
+Up vote
+3
+Down vote
+Avatar
+Avatar "randomly" picks one player at the start and relentlessly focuses them for the rest of the round.
+
+This is not a reference to a similarly-named animated TV show.
+
+Click to show spoiler
+Download tar of all required files
+
+Changelog
+v1 Birthday
+v2 Doesn't log anything to stdout, only to stderr.
+To suppress stderr too, add 2>/dev/null to the end of the run file.
+/*  Casting his sight on his realm, the Lord witnessed
+    The cascade of evil, the torrents of war.
+    Burning with wrath, He stepped 
+    down from the Heavens
+    To judge the unworthy,
+    To redeem the pure.
+
+    -The Scriptures, Revelation Verses 2:12
+*/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include "mafia.h"
+
+int getRandomNumber(){
+    return 4; // Chosen by a fair dice roll.
+              // Garunteed to be random.
+}
+
+
+void day0(){
+    char * target = get_player(getRandomNumber()-1)->name;
+    fprintf(stderr, "Target: `%s'\n", target);
+    FILE * f = fopen("target", "w");
+    if(!f){exit(1);}
+    fprintf(f, "%s", target);
+    fclose(f);
+}
+
+
+int main(){
+    get_players();
+    int cycle = get_cycle(day0);
+    FILE * out = fopen("to_server", "w");
+    if(!out){exit(1);}
+    FILE * targetF = fopen("target", "r");
+    if(!targetF){exit(1);}
+
+    char target[64];
+
+    fscanf(targetF, "%s", target);
+
+    fprintf(stderr, "Target: %s\n", target);
+
+    if(cycle == 0){
+        // night
+        fprintf(out,"%s\n", target);
+        fprintf(stderr, "> Voting to kill %s\n", target);
+        exit(0);
+    } else if (cycle > 0) {
+        // day
+        fprintf(out, "vote %s\n", target);
+        fprintf(stderr, "> Voting to lynch %s\n", target);
+        exit(0);
+    } else if (cycle == -1) {
+        fprintf(stderr, "> saying 6, 10 at %s\n", target);
+        fprintf(out, "say 6 %s\n", target);
+        fprintf(out, "say 10 %s\n", target);
+    }
+}
+It requires mafia.c and mafia.h, libraries I wrote, in the same directory.
+
+These are included in the download, along with a Makefile and a run script.
+
+TODO
+Stop voting against the target when they're killed or lynched.
+While I'm here, I'll submit the non-bot, Steve:
+
+
+Share Improve this answer Follow
+answered
+Dec 22 '17 at 2:02
+
+SIGSTACKFAULT
+615●44 silver badges●1616 bronze badges edited
+Jan 11 '18 at 20:28
+
+FYI, I call dibs on avatar, erebus, leviathan, and ragnarok – SIGSTACKFAULT Dec 22 '17 at 2:16 
+"This is not a reference to a similarly-named animated TV show." is it a reference to the movie? – Stan Strum Dec 22 '17 at 4:33
+@StanStrum no, It's not. – SIGSTACKFAULT Dec 22 '17 at 13:35
+My bot's from_server file isn't being written to. Did you have to set specific permissions or something? – Rɪᴋᴇʀ Dec 23 '17 at 18:17
+1
+Note for the curious: the Scriptures referenced here are those of the Amarr from EVE Online. There is a Revelation 2:12 in the Bible, but it reads rather differently. – DLosc Jan 11 '18 at 18:36
+Show 5 more comments
+Up vote
+2
+Down vote
+Leviathan
+Leviathan iterates over all the players in the players file and targets them one by one.
+
+Download
+
+/*  Citizens of the State, rejoice!
+
+    Today, a great milestone has been achieved by our glorious leaders.
+    A stepping stone in the grand story of our empire has been traversed.
+    Our individual fears may be quietened;
+    the safety of our great nation has been secured.
+
+    Today, unyielding, we have walked the way of the warrior.
+    In our hands have our fates been molded.
+    On the Leviathan's back will our civilization be carried home
+    and the taint of the Enemy purged from our souls.
+
+    Rejoice, citizens! Victory is at hand.
+
+    -Caldari State Information Bureau Pamphlet, YC 12
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "mafia.h"
+
+void day0(){
+    FILE * index = fopen("idx", "w");
+
+    fprintf(index,"0");
+
+    fclose(index);
+}
+
+int main(){
+    get_players();
+    int i, cycle = get_cycle(day0);
+
+    FILE * out = fopen("to_server", "w");
+    FILE * idx = fopen("idx", "r");
+
+    fscanf(idx, "%d", &i);
+    fclose(idx);
+
+    char * target;
+    target = get_player(i)->name;
+
+    fprintf(stderr, "Idx: %d\n", i);
+    fprintf(stderr, "Target: %s\n", target);
+
+    if(cycle > 0){
+        idx = fopen("idx", "w");
+        i++;
+        i = i%NPLAYERS;
+        fprintf(idx, "%d", i);
+        fprintf(out, "vote %s\n", target);
+    } else if (cycle == -1) {
+        printf("> saying 6, 10 at %s\n", target);
+        fprintf(out, "say 6 %s\n", target);
+        fprintf(out, "say 10 %s\n", target);
+    }
+
+    fclose(out);
+}
+As with Avatar, It requires mafia.c and mafia.h in the same directory.
+
+These are included in the download, along with a Makefile and a run script.
+
+Share Improve this answer Follow
+answered
+Dec 22 '17 at 16:06
+
+SIGSTACKFAULT
+615●44 silver badges●1616 bronze badges
+:) adding survivalist once im done with it – JSCoder says Reinstate Monica Jan 10 '18 at 23:01
+Add a comment
+Your Answer
+
+Body
+ Add picture
+ 
+
+OR
+Name
+Email
+ 
+By clicking “Post Your Answer”, you agree to our terms of service, privacy policy and cookie policy
+
+meta chat tour help blog privacy policy legal contact us cookie settings full site
+2021 Stack Exchange, Inc. user contributions under cc by-sa
+
+Your privacy
+
+By clicking “Accept all cookies”, you agree Stack Exchange can store cookies on your device and disclose information in accordance with our Cookie Policy.
+
+ 
