@@ -1,0 +1,15 @@
+Sharptooth's answers is correct in that you HAVE to provide a definition to the pure virtual destructor (see this GotW). But it is wrong in that you cannot write
+
+virtual ~A() = 0 {};
+according to this clause in the standard (although many compilers support this extension)
+
+Clause 10.4 paragraph 2 of C++03 tells us what an abstract class is and, as a side note, the following:
+
+[Note: a function declaration cannot provide both a pure-specifier and a definition —end note] [Example:
+
+struct C {
+virtual void f() = 0 { }; // ill-formed
+};
+—end example]
+
+See this question of mine for more details
